@@ -86,11 +86,30 @@ ds -f 5f03528a8fbe thing-api-1-1
 
 ## Pain Points
 
+Some things that are bad, but expected.
+
+<details>
+<summary>
+
+### Painfully slow to start
+
+</summary>
+
 I know... It is slow to start, but that's it. This is the time `docker stats` takes to run, it has to hook up to the container and get the realtime stats. As for today I have tested it with OrbStack and Docker Desktop, the delay seems to be the same, but I'll keep looking into it.
+</details>
+
+<details>
+<summary>
+
+### `network_mode: host`
+
+</summary>
 
 From the GIF you can also note that the `NET` chart is not moving, but this is expected there. This containers are running in `network_mode: host` and the `NET` chart will only be populated if you're using the `bridge` network.
 
 > Ps: If you use Mac and think I'm completely out of my mind for the `network_mode: host` above, I know. It's a running topic on the Desktop for Mac and yet not supported. You can follow the discussion [here](https://github.com/docker/roadmap/issues/238). And this was the main reason I started looking into OrbStack.
+
+</details>
 
 ## License
 
