@@ -1,4 +1,5 @@
 use byte_unit::Byte;
+use clap::ArgMatches;
 use colored::{ColoredString, Colorize};
 use serde::Deserialize;
 use std::{
@@ -44,12 +45,20 @@ struct DockerStats {
     net_io: String,
 }
 
+mod cli;
+
 fn main() {
+    let matches = cli::args().get_matches();
+    let (compact, full) = (
+        cli::has_arg(&matches, "compact"),
+        cli::has_arg(&matches, "full"),
+    );
+
     let mut containers: HashMap<String, DockerStats> = HashMap::new();
     let width = get_terminal_width();
 
     let mut cmd = Command::new("docker")
-        .args(["stats", "--format", "json"])
+        .args(build_command(matches))
         .stdout(Stdio::piped())
         .spawn()
         .expect("Failed to run \"docker stats ...\"");
@@ -67,20 +76,20 @@ fn main() {
 
         let mut max = 100_f32;
 
-        for (_, (_, stats)) in containers.iter().enumerate() {
-            //if i == 0 {
-            println!(
-                "┌─ {} {}┐",
-                stats.name,
-                filler("─", width, stats.name.len() + 5)
-            );
-            /* } else {
+        for (i, (_, stats)) in containers.iter().enumerate() {
+            if !compact || i == 0 {
+                println!(
+                    "┌─ {} {}┐",
+                    stats.name,
+                    filler("─", width, stats.name.len() + 5)
+                );
+            } else {
                 println!(
                     "├─ {} {}┤",
                     stats.name,
                     fill_on_even("─", width, stats.name.len() + 5)
                 );
-            } */
+            }
 
             let mem_perc = perc_to_usize(stats.mem_perc.clone());
             let cpu_perc = perc_to_usize(stats.cpu_perc.clone());
@@ -113,58 +122,58 @@ fn main() {
                 stats.mem_usage
             );
 
-            println!("│{}│", fill_on_even("─", width, 2).dimmed());
+            if full {
+                println!("│{}│", fill_on_even("─", width, 2).dimmed());
 
-            // NET
+                // NET
+                let net = stats.net_io.split(" / ").collect::<Vec<&str>>();
 
-            let net = stats.net_io.split(" / ").collect::<Vec<&str>>();
+                let inp = Byte::from_str(net[0])
+                    .expect("Failed to parse Byte")
+                    .get_bytes();
 
-            let inp = Byte::from_str(net[0])
-                .expect("Failed to parse Byte")
-                .get_bytes();
+                let out = Byte::from_str(net[1])
+                    .expect("Failed to parse Byte")
+                    .get_bytes();
 
-            let out = Byte::from_str(net[1])
-                .expect("Failed to parse Byte")
-                .get_bytes();
+                let scaled_net = match scale_between(vec![inp, out], 1, (width - 12) as u128) {
+                    None => full_split(width as u128 - 11),
+                    Some(scaled_net) => scaled_net,
+                };
 
-            let scaled_net = match scale_between(vec![inp, out], 1, (width - 12) as u128) {
-                None => full_split(width as u128 - 11),
-                Some(scaled_net) => scaled_net,
-            };
+                println!(
+                    "│ NET | {}{}{} │",
+                    filler("▒", scaled_net[0] as usize, width - 12).green(),
+                    "░".dimmed(),
+                    filler("▒", scaled_net[1] as usize, width - 12).red()
+                );
 
-            println!(
-                "│ NET | {}{}{} │",
-                filler("▒", scaled_net[0] as usize, width - 12).green(),
-                "░".dimmed(),
-                filler("▒", scaled_net[1] as usize, width - 12).red()
-            );
+                // IO
+                let blocks = stats.block_io.split(" / ").collect::<Vec<&str>>();
 
-            // IO
+                let inp = Byte::from_str(blocks[0])
+                    .expect("Failed to parse Byte")
+                    .get_bytes();
+                let out = Byte::from_str(blocks[1])
+                    .expect("Failed to parse Byte")
+                    .get_bytes();
 
-            let blocks = stats.block_io.split(" / ").collect::<Vec<&str>>();
+                let scaled_io = match scale_between(vec![inp, out], 1, (width - 12) as u128) {
+                    None => full_split(width as u128 - 11),
+                    Some(scaled_io) => scaled_io,
+                };
 
-            let inp = Byte::from_str(blocks[0])
-                .expect("Failed to parse Byte")
-                .get_bytes();
-            let out = Byte::from_str(blocks[1])
-                .expect("Failed to parse Byte")
-                .get_bytes();
+                println!(
+                    "│  IO | {}{}{} │",
+                    filler("▒", scaled_io[0] as usize, 0).white(),
+                    "░".dimmed(),
+                    filler("▒", scaled_io[1] as usize, 0).black()
+                );
+            }
 
-            let scaled_io = match scale_between(vec![inp, out], 1, (width - 12) as u128) {
-                None => full_split(width as u128 - 11),
-                Some(scaled_io) => scaled_io,
-            };
-
-            println!(
-                "│  IO | {}{}{} │",
-                filler("▒", scaled_io[0] as usize, 0).white(),
-                "░".dimmed(),
-                filler("▒", scaled_io[1] as usize, 0).black()
-            );
-
-            //if i == containers.len() - 1 {
-            println!("└{}┘", filler("─", width, 2));
-            //}
+            if !compact || i == containers.len() - 1 {
+                println!("└{}┘", filler("─", width, 2));
+            }
         }
     }
 
@@ -234,4 +243,23 @@ fn full_split(value: u128) -> Vec<u128> {
         .into_iter()
         .map(|v| v as u128)
         .collect()
+}
+
+fn build_command(matches: ArgMatches) -> Vec<String> {
+    let mut base_command = vec![
+        "stats".to_string(),
+        "--format".to_string(),
+        "json".to_string(),
+    ];
+
+    let mut added_containers: Vec<String> = matches
+        .get_many::<String>("CONTAINER")
+        .into_iter()
+        .flatten()
+        .map(|c| c.to_string())
+        .collect();
+
+    base_command.append(&mut added_containers);
+
+    base_command
 }

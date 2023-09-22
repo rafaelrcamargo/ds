@@ -40,10 +40,48 @@ mv target/release/ds /usr/local/bin
 
 ## Usage
 
-Well, there's not much to it. Just run `ds` and you should see *colored moving things* in your terminal.
+To use it with the default settings, just run:
 
 ```bash
 ds
+```
+
+For more options, you can run:
+
+```bash
+ds -h
+
+# Think "docker stats" but with beautiful, real-time charts. 📊
+#
+# Usage: ds [OPTIONS] [CONTAINER]...
+#
+#Arguments:
+#  [CONTAINER]...  The container to show stats for.
+#
+#Options:
+#  -c, --compact  Enable a simpler, more compact view.
+#  -f, --full     Enable a more detailed view.
+#  -h, --help     Print help
+```
+
+### Examples & Use Cases
+
+Some examples of how you can use this tool.
+
+#### Compact view for all containers
+
+This can be useful if you want to see basic info about all your containers, in a compact view (Saving space for other things).
+
+```bash
+ds -c
+```
+
+#### Full view for some containers
+
+This is useful if you want to see the stats for a specific container. This will include NET and IO charts.
+
+```bash
+ds -f 5f03528a8fbe thing-api-1-1
 ```
 
 ## Pain Points
