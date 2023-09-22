@@ -96,6 +96,7 @@ Some things that are bad, but expected.
 </summary>
 
 I know... It is slow to start, but that's it. This is the time `docker stats` takes to run, it has to hook up to the container and get the realtime stats. As for today I have tested it with OrbStack and Docker Desktop, the delay seems to be the same, but I'll keep looking into it.
+
 </details>
 
 <details>
