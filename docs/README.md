@@ -88,7 +88,7 @@ ds -f 5f03528a8fbe thing-api-1-1
 
 Some things that are bad, but expected.
 
-<details>
+<details open>
 <summary>
 
 ### Painfully slow to start
