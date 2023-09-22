@@ -16,22 +16,23 @@ I also think having a visual reference when analyzing your system can be very he
 
 ### Source
 
-For this you'll need to have [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) installed.
+For this you'll need to have [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) installed. From there, you can clone this repo:
 
 ```bash
 git clone https://github.com/rafaelrcamargo/ds
 ```
 
-`cd` into the directory and run:
+Then just `cd` into the directory and run:
 
 ```bash
 cargo run # For development
 cargo build --release # For production
 ```
 
-To add this command to your path, you can run:
+To add this command to your `$PATH`, you can run:
 
 ```bash
+# Will probably need sudo
 mv target/release/ds /usr/local/bin
 ```
 
