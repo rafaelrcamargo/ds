@@ -55,13 +55,13 @@ ds -h
 #
 # Usage: ds [OPTIONS] [CONTAINER]...
 #
-#Arguments:
-#  [CONTAINER]...  The container to show stats for.
+# Arguments:
+#   [CONTAINER]...  The container to show stats for.
 #
-#Options:
-#  -c, --compact  Enable a simpler, more compact view.
-#  -f, --full     Enable a more detailed view.
-#  -h, --help     Print help
+# Options:
+#   -c, --compact  Enable a simpler, more compact view.
+#   -f, --full     Enable a more detailed view.
+#   -h, --help     Print help
 ```
 
 ### Examples & Use Cases
