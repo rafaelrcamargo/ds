@@ -8,20 +8,6 @@ use std::{
 };
 use terminal_size::{terminal_size, Width};
 
-/*
- {
-  "BlockIO": "52.5MB / 258kB",
-  "CPUPerc": "0.00%",
-  "Container": "baf6f421ca24",
-  "ID": "baf6f421ca24",
-  "MemPerc": "5.66%",
-  "MemUsage": "130.5MiB / 2.25GiB",
-  "Name": "rinha-db-1",
-  "NetIO": "0B / 0B",
-  "PIDs": "6"
-  }
-*/
-
 fn scale_between(
     unscaled_nums: Vec<u128>,
     min_allowed: u128,
@@ -63,7 +49,7 @@ fn main() {
     let width = get_terminal_width();
 
     let mut cmd = Command::new("docker")
-        .args(&["stats", "--format", "json"])
+        .args(["stats", "--format", "json"])
         .stdout(Stdio::piped())
         .spawn()
         .expect("Failed to run \"docker stats ...\"");
@@ -81,7 +67,7 @@ fn main() {
 
         let mut max = 100_f32;
 
-        for (i, (_, stats)) in containers.iter().enumerate() {
+        for (_, (_, stats)) in containers.iter().enumerate() {
             //if i == 0 {
             println!(
                 "┌─ {} {}┐",
@@ -213,7 +199,7 @@ fn fill_on_even(char: &str, size: usize, len: usize) -> String {
         if i % 2 == 0 {
             filler.push_str(char);
         } else {
-            filler.push_str(" ");
+            filler.push(' ');
         }
     }
 
@@ -221,8 +207,8 @@ fn fill_on_even(char: &str, size: usize, len: usize) -> String {
 }
 
 fn perc_to_usize(perc: String) -> usize {
-    if perc.contains("%") {
-        perc.replace("%", "")
+    if perc.contains('%') {
+        perc.replace('%', "")
             .parse::<f32>()
             .expect("Failed to parse Percentage")
             .round() as usize
