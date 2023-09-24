@@ -1,51 +1,18 @@
+mod cli;
+
+mod utils;
+use utils::*;
+
+mod data;
+use data::DockerStats;
+
 use byte_unit::Byte;
-use clap::ArgMatches;
-use colored::{ColoredString, Colorize};
-use serde::Deserialize;
+use colored::Colorize;
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader},
     process::{Command, Stdio},
 };
-use terminal_size::{terminal_size, Width};
-
-fn scale_between(
-    unscaled_nums: Vec<u128>,
-    min_allowed: u128,
-    max_allowed: u128,
-) -> Option<Vec<u128>> {
-    let min = unscaled_nums.iter().min().unwrap();
-    let max = unscaled_nums.iter().max().unwrap();
-
-    if min == max {
-        return None;
-    }
-
-    let scaled_nums: Vec<_> = unscaled_nums
-        .iter()
-        .map(|num| (max_allowed - min_allowed) * (num - min) / (max - min) + min_allowed)
-        .collect();
-
-    Some(scaled_nums)
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "PascalCase")]
-struct DockerStats {
-    #[serde(rename = "BlockIO")]
-    block_io: String,
-    #[serde(rename = "CPUPerc")]
-    cpu_perc: String,
-    #[serde(rename = "ID")]
-    id: String,
-    mem_perc: String,
-    mem_usage: String,
-    name: String,
-    #[serde(rename = "NetIO")]
-    net_io: String,
-}
-
-mod cli;
 
 fn main() {
     let matches = cli::args().get_matches();
@@ -137,7 +104,7 @@ fn main() {
                     .get_bytes();
 
                 let scaled_net = match scale_between(vec![inp, out], 1, (width - 12) as u128) {
-                    None => full_split(width as u128 - 11),
+                    None => balanced_split(width as u128 - 11),
                     Some(scaled_net) => scaled_net,
                 };
 
@@ -159,7 +126,7 @@ fn main() {
                     .get_bytes();
 
                 let scaled_io = match scale_between(vec![inp, out], 1, (width - 12) as u128) {
-                    None => full_split(width as u128 - 11),
+                    None => balanced_split(width as u128 - 11),
                     Some(scaled_io) => scaled_io,
                 };
 
@@ -179,87 +146,4 @@ fn main() {
 
     let status = cmd.wait();
     println!("Exited with status {:?}", status);
-}
-
-fn get_terminal_width() -> usize {
-    if let Some((Width(w), _)) = terminal_size() {
-        w.into()
-    } else {
-        80
-    }
-}
-
-fn filler(char: &str, max: usize, used: usize) -> String {
-    if max == 0 {
-        String::new()
-    } else if max < used {
-        // Not really sure when this would happen,
-        // and neither if this is the correct way to handle it...
-        char.repeat(max)
-    } else {
-        char.repeat(max - used)
-    }
-}
-
-fn fill_on_even(char: &str, size: usize, len: usize) -> String {
-    let mut filler = String::new();
-
-    for i in 0..(size - len) {
-        if i % 2 == 0 {
-            filler.push_str(char);
-        } else {
-            filler.push(' ');
-        }
-    }
-
-    filler
-}
-
-fn perc_to_usize(perc: String) -> usize {
-    if perc.contains('%') {
-        perc.replace('%', "")
-            .parse::<f32>()
-            .expect("Failed to parse Percentage")
-            .round() as usize
-    } else {
-        0
-    }
-}
-
-fn usize_to_status(perc: usize, max: usize) -> ColoredString {
-    let fill = filler("█", perc, 0);
-
-    if perc < max / 2 {
-        fill.green()
-    } else if perc < max - (max / 4) {
-        fill.yellow()
-    } else {
-        fill.red()
-    }
-}
-
-fn full_split(value: u128) -> Vec<u128> {
-    vec![(value / 2) as usize, (value / 2 + value % 2) as usize]
-        .into_iter()
-        .map(|v| v as u128)
-        .collect()
-}
-
-fn build_command(matches: ArgMatches) -> Vec<String> {
-    let mut base_command = vec![
-        "stats".to_string(),
-        "--format".to_string(),
-        "json".to_string(),
-    ];
-
-    let mut added_containers: Vec<String> = matches
-        .get_many::<String>("CONTAINER")
-        .into_iter()
-        .flatten()
-        .map(|c| c.to_string())
-        .collect();
-
-    base_command.append(&mut added_containers);
-
-    base_command
 }
