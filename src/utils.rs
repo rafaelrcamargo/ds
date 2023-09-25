@@ -53,14 +53,14 @@ pub fn fill_on_even(char: &str, size: usize, len: usize) -> String {
 }
 
 /// Parses a percentage string into a usize.
-pub fn perc_to_usize(perc: String) -> usize {
+pub fn perc_to<T: From<f32>>(perc: String) -> T {
     if perc.contains('%') {
         perc.replace('%', "")
             .parse::<f32>()
-            .expect("Failed to parse Percentage")
-            .round() as usize
+            .expect("Failed to parse percentage")
+            .into()
     } else {
-        0
+        0f32.into()
     }
 }
 
@@ -78,30 +78,25 @@ pub fn usize_to_status(perc: usize, max: usize) -> ColoredString {
 }
 
 /// Splits a value into two balanced parts.
-pub fn balanced_split(value: u128) -> Vec<u128> {
-    vec![(value / 2) as usize, (value / 2 + value % 2) as usize]
-        .into_iter()
-        .map(|v| v as u128)
-        .collect()
+pub fn balanced_split(value: usize) -> Vec<usize> {
+    vec![value / 2, value / 2 + value % 2]
 }
 
 /// Scales a vector of numbers between a min and max value.
-pub fn scale_between(
-    unscaled_nums: Vec<u128>,
-    min_allowed: u128,
-    max_allowed: u128,
-) -> Option<Vec<u128>> {
-    let min = unscaled_nums.iter().min().unwrap();
-    let max = unscaled_nums.iter().max().unwrap();
+pub fn scale_between(nums: Vec<u128>, floor: usize, ceil: usize) -> Option<Vec<usize>> {
+    let [min, max] = [nums.iter().min().unwrap(), nums.iter().max().unwrap()];
+    let [floor, ceil] = [floor as u128, ceil as u128];
 
     if min == max {
         return None;
     }
 
-    let scaled_nums: Vec<_> = unscaled_nums
-        .iter()
-        .map(|num| (max_allowed - min_allowed) * (num - min) / (max - min) + min_allowed)
-        .collect();
-
-    Some(scaled_nums)
+    Some(
+        nums.iter()
+            .map(|num| {
+                usize::try_from((ceil - floor) * (num - min) / (max - min) + floor)
+                    .expect("Failed to convert u128 to usize")
+            })
+            .collect(),
+    )
 }
