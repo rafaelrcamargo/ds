@@ -1,22 +1,23 @@
-# 📊 `ds` - Real-time Stats with Terminal Charts</h1>
+<div align="center">
+
+# 📊 `ds` - Real-time Stats with Terminal Charts
 
 *Visualize container stats with beautiful, real-time charts directly in your terminal.*
 
-![ds](./assets/demo.png)
+  <img src="./assets/demo.png" alt="demo" />
+</div>
 
-## Why?
+## Why `ds`?
 
-Lately I've been trying out [OrbStack](https://orbstack.dev/) - OrbStack is the fast, light, and easy way to run Docker containers and Linux. Develop at lightspeed with our Docker Desktop alternative.
-
-And as much as I love the idea of OrbStack, I really miss the charts that **Docker Desktop** provides. This is a issue that's on the OrbStack team's radar, but I wanted to see if I could come up with a solution in the meantime.
-
-I also think having a visual reference when analyzing your system can be very helpful. Colors and moving things can help you spot issues that you might not otherwise notice. And that's how this project was born.
+- **Missing Charts**: While experimenting with [OrbStack](https://orbstack.dev/), a lightweight Docker container management tool, I found that it lacks the visual charts that Docker Desktop provides. This project aims to bridge that gap.
+- **Visual Analysis**: Visualizing system stats in real-time can help spot issues that might go unnoticed in text-based outputs. `ds` brings colors and moving charts to your system analysis.
+- **Rust-Powered**: This project is written in Rust, leveraging its performance and reliability.
 
 ## Installation
 
 ### Source
 
-For this you'll need to have [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) installed. From there, you can clone this repo:
+Ensure you have [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) installed. Then, clone this repo:
 
 ```bash
 git clone https://github.com/rafaelrcamargo/ds
@@ -36,7 +37,7 @@ To add this command to your `$PATH`, you can run:
 mv target/release/ds /usr/local/bin
 ```
 
-> **Note**: Yes, I do plan on adding this to crates.io, but I want to make sure it's stable enough before I do that.
+> **Note**: I plan to publish `ds` on [crates.io](https://crates.io/) once it's stable enough.
 
 ## Usage
 
@@ -46,22 +47,12 @@ To use it with the default settings, just run:
 ds
 ```
 
+> This is akin to docker stats but with beautiful real-time charts. 📊
+
 For more options, you can run:
 
 ```bash
 ds -h
-
-# Think "docker stats" but with beautiful, real-time charts. 📊
-#
-# Usage: ds [OPTIONS] [CONTAINER]...
-#
-# Arguments:
-#   [CONTAINER]...  The container to show stats for.
-#
-# Options:
-#   -c, --compact  Enable a simpler, more compact view.
-#   -f, --full     Enable a more detailed view.
-#   -h, --help     Print help
 ```
 
 ### Examples & Use Cases
@@ -70,7 +61,7 @@ Some examples of how you can use this tool.
 
 #### Compact view for all containers
 
-This can be useful if you want to see basic info about all your containers, in a compact view (Saving space for other things).
+For a basic overview of all containers in a space-saving format:
 
 ```bash
 ds -c
@@ -78,10 +69,10 @@ ds -c
 
 #### Full view for some containers
 
-This is useful if you want to see the stats for a specific container. This will include NET and IO charts.
+To see detailed stats for a specific container, including NET and IO charts:
 
 ```bash
-ds -f 5f03528a8fbe thing-api-1-1
+ds -f 5f03524a8fbe api-1
 ```
 
 ## Pain Points
