@@ -15,6 +15,9 @@
 
 ## Installation
 
+> **Note**
+> I plan to publish `ds` on [crates.io](https://crates.io/) once it's stable enough.
+
 ### Source
 
 Ensure you have [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) installed. Then, clone this repo:
@@ -46,9 +49,6 @@ Then add this command to your `$PATH`, you can run:
 mv target/release/ds /usr/local/bin
 ```
 
-> **Note**
-> I plan to publish `ds` on [crates.io](https://crates.io/) once it's stable enough.
-
 ## Usage
 
 To use it with the default settings, just run:
@@ -57,7 +57,7 @@ To use it with the default settings, just run:
 ds
 ```
 
-> This is akin to docker stats but with beautiful real-time charts. 📊
+> This is akin to docker stats.
 
 For more options, you can run:
 
