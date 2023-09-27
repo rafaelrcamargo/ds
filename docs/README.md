@@ -1,10 +1,8 @@
-# 📊 ds - Useful stats on your terminal
+# 📊 `ds` - Useful stats on your terminal</h1>
 
-It's like "docker stats" but with beautiful, real-time charts directly in your terminal.
+*It's like "docker stats" but with beautiful, real-time charts directly in your terminal.*
 
-<div align="center">
-  <img src="./assets/demo.gif" width="80%" />
-</div>
+![ds](./assets/ds.gif)
 
 ## Why?
 
