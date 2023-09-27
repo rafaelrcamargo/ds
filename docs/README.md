@@ -2,9 +2,7 @@
 
 It's like "docker stats" but with beautiful, real-time charts directly in your terminal.
 
-<div align="center">
-  <img src="./assets/demo.gif" width="80%" />
-</div>
+![ds](./assets/demo.png)
 
 ## Why?
 
