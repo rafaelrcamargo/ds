@@ -39,7 +39,7 @@ pub fn filler(char: &str, max: usize, used: usize) -> String {
 /// Fills the size with the given char, but only on even numbers.
 pub fn fill_on_even(char: &str, size: usize, len: usize) -> String {
     if size == 0 || size <= len {
-        return String::new();
+        String::new()
     } else {
         let mut filler = String::new();
 
