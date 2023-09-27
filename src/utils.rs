@@ -29,12 +29,8 @@ pub fn get_terminal_width() -> usize {
 
 /// Fills the size with the given char.
 pub fn filler(char: &str, max: usize, used: usize) -> String {
-    if max == 0 {
+    if max == 0 || max <= used {
         String::new()
-    } else if max < used {
-        // Not really sure when this would happen,
-        // and neither if this is the correct way to handle it...
-        char.repeat(max)
     } else {
         char.repeat(max - used)
     }
@@ -42,28 +38,31 @@ pub fn filler(char: &str, max: usize, used: usize) -> String {
 
 /// Fills the size with the given char, but only on even numbers.
 pub fn fill_on_even(char: &str, size: usize, len: usize) -> String {
-    let mut filler = String::new();
+    if size == 0 || size <= len {
+        return String::new();
+    } else {
+        let mut filler = String::new();
 
-    for i in 0..(size - len) {
-        if i % 2 == 0 {
-            filler.push_str(char);
-        } else {
-            filler.push(' ');
+        for i in 0..(size - len) {
+            if i % 2 == 0 {
+                filler.push_str(char);
+            } else {
+                filler.push(' ');
+            }
         }
-    }
 
-    filler
+        filler
+    }
 }
 
 /// Parses a percentage string into a usize.
-pub fn perc_to<T: From<f32>>(perc: String) -> T {
+pub fn perc_to_float(perc: String) -> f32 {
     if perc.contains('%') {
         perc.replace('%', "")
             .parse::<f32>()
             .expect("Failed to parse percentage")
-            .into()
     } else {
-        0f32.into()
+        0f32
     }
 }
 

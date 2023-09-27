@@ -58,8 +58,8 @@ fn main() {
             }
 
             // CONSTANTS
-            let mem_perc: f32 = perc_to(stats.mem_perc.clone());
-            let cpu_perc: f32 = perc_to(stats.cpu_perc.clone());
+            let mem_perc: f32 = perc_to_float(stats.mem_perc.clone());
+            let cpu_perc: f32 = perc_to_float(stats.cpu_perc.clone());
 
             // GLOBAL SCALE
             max = max.max(mem_perc);
