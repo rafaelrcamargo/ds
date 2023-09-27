@@ -10,17 +10,15 @@ repository = "https://github.com/rafaelrcamargo/ds"
 version = "0.0.0"
 
 [badges]
-maintenance = {status = "experimental"}
+maintenance = { status = "experimental" }
 
 [[bin]]
 name = "ds"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 byte-unit = "4.0.19"
 clap = "4.4.4"
 colored = "2.0.4"
-serde = {version = "1.0.188", features = ["derive"]}
+serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.107"
 terminal_size = "0.3.0"
