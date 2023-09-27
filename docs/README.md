@@ -11,7 +11,7 @@
 
 - **Missing Charts**: While experimenting with [OrbStack](https://orbstack.dev/), a lightweight Docker container management tool, I found that it lacks the visual charts that Docker Desktop provides. This project aims to bridge that gap.
 - **Visual Analysis**: Visualizing system stats in real-time can help spot issues that might go unnoticed in text-based outputs. `ds` brings colors and moving charts to your system analysis.
-- **Rust-Powered**: This project is written in Rust, leveraging its performance and reliability.
+- **Rust-Powered 😶‍🌫️**: This project is written in Rust, leveraging its performance and reliability.
 
 ## Installation
 
@@ -23,21 +23,31 @@ Ensure you have [Cargo](https://doc.rust-lang.org/cargo/getting-started/installa
 git clone https://github.com/rafaelrcamargo/ds
 ```
 
+#### Development
+
 Then just `cd` into the directory and run:
 
 ```bash
-cargo run # For development
-cargo build --release # For production
+cargo run -- <ARGS> # For development
 ```
 
-To add this command to your `$PATH`, you can run:
+#### Release
+
+In the project directory, run:
 
 ```bash
-# Will probably need sudo
+cargo run --release -- <ARGS> # For production
+```
+
+Then add this command to your `$PATH`, you can run:
+
+```bash
+# May require sudo
 mv target/release/ds /usr/local/bin
 ```
 
-> **Note**: I plan to publish `ds` on [crates.io](https://crates.io/) once it's stable enough.
+> **Note**
+> I plan to publish `ds` on [crates.io](https://crates.io/) once it's stable enough.
 
 ## Usage
 
@@ -99,7 +109,7 @@ I know... It is slow to start, but that's it. This is the time `docker stats` ta
 
 From the GIF you can also note that the `NET` chart is not moving, but this is expected there. This containers are running in `network_mode: host` and the `NET` chart will only be populated if you're using the `bridge` network.
 
-> Ps: If you use Mac and think I'm completely out of my mind for the `network_mode: host` above, I know. It's a running topic on the Desktop for Mac and yet not supported. You can follow the discussion [here](https://github.com/docker/roadmap/issues/238). And this was the main reason I started looking into OrbStack.
+> Ps: If you use Mac and think I'm completely out of my mind for the `network_mode: host` above, I know. It's a running topic on the **Docker Desktop for Mac** and yet not supported. You can follow the discussion [here](https://github.com/docker/roadmap/issues/238). And this was the main reason I started looking into OrbStack.
 
 </details>
 

@@ -10,5 +10,6 @@ pub fn args() -> Command {
 }
 
 pub fn has_arg(args: &ArgMatches, id: &str) -> bool {
-    args.get_one::<bool>(id).is_some_and(|x| *x == true)
+    args.get_one::<bool>(id)
+        .is_some_and(|x| *x)
 }

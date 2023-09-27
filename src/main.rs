@@ -11,7 +11,7 @@ use colored::Colorize;
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader},
-    process::{Command, Stdio},
+    process::{Command, Stdio}
 };
 
 fn main() {
@@ -19,7 +19,7 @@ fn main() {
     let (compact, full) = (
         // Get the args
         cli::has_arg(&matches, "compact"),
-        cli::has_arg(&matches, "full"),
+        cli::has_arg(&matches, "full")
     );
 
     let mut containers: HashMap<String, DockerStats> = HashMap::new();
@@ -38,7 +38,10 @@ fn main() {
     for line in stdout_lines {
         print!("\x1B[2J\x1B[1;1H"); // Clear screen
 
-        let line = line.unwrap().replace("\u{1b}[2J\u{1b}[H", "");
+        let line = line
+            .unwrap()
+            .replace("\u{1b}[2J\u{1b}[H", "");
+
         let stats: DockerStats = serde_json::from_str(&line).unwrap();
         containers.insert(stats.id.clone(), stats);
 
@@ -48,17 +51,9 @@ fn main() {
             // LAYOUT
             {
                 if !compact || i == 0 {
-                    println!(
-                        "┌─ {} {}┐",
-                        stats.name,
-                        filler("─", width, stats.name.len() + 5)
-                    );
+                    println!("┌─ {} {}┐", stats.name, filler("─", width, stats.name.len() + 5));
                 } else {
-                    println!(
-                        "├─ {} {}┤",
-                        stats.name,
-                        fill_on_even("─", width, stats.name.len() + 5)
-                    );
+                    println!("├─ {} {}┤", stats.name, fill_on_even("─", width, stats.name.len() + 5));
                 }
             }
 
@@ -105,7 +100,10 @@ fn main() {
                 // NET
                 {
                     let net: Vec<usize> = {
-                        let net = stats.net_io.split(" / ").collect::<Vec<&str>>();
+                        let net = stats
+                            .net_io
+                            .split(" / ")
+                            .collect::<Vec<&str>>();
 
                         let bytes = vec![
                             Byte::from_str(net[0])
@@ -118,7 +116,7 @@ fn main() {
 
                         match scale_between(bytes, 1, width - 12) {
                             None => balanced_split(width - 11),
-                            Some(scaled_net) => scaled_net,
+                            Some(scaled_net) => scaled_net
                         }
                     };
 
@@ -133,7 +131,10 @@ fn main() {
                 // IO
                 {
                     let io = {
-                        let blocks = stats.block_io.split(" / ").collect::<Vec<&str>>();
+                        let blocks = stats
+                            .block_io
+                            .split(" / ")
+                            .collect::<Vec<&str>>();
 
                         let bytes = vec![
                             Byte::from_str(blocks[0])
@@ -146,7 +147,7 @@ fn main() {
 
                         match scale_between(bytes, 1, width - 12) {
                             None => balanced_split(width - 11),
-                            Some(scaled_io) => scaled_io,
+                            Some(scaled_io) => scaled_io
                         }
                     };
 

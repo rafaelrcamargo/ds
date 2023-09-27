@@ -13,5 +13,5 @@ pub struct DockerStats {
     pub mem_usage: String,
     pub name: String,
     #[serde(rename = "NetIO")]
-    pub net_io: String,
+    pub net_io: String
 }
