@@ -2,7 +2,7 @@
 
 It's like "docker stats" but with beautiful, real-time charts directly in your terminal.
 
-![ds](./assets/ds.gif)
+![ds](./assets/demo.gif)
 
 ## Why?
 
