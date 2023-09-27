@@ -1,6 +1,6 @@
-# 📊 ds - Useful stats on your terminal
+# 📊 `ds` - Useful stats on your terminal</h1>
 
-It's like "docker stats" but with beautiful, real-time charts directly in your terminal.
+*It's like "docker stats" but with beautiful, real-time charts directly in your terminal.*
 
 ![ds](./assets/demo.png)
 
