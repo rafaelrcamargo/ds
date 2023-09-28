@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 #[path = "../src/utils.rs"]
 mod utils;
 
@@ -32,5 +30,13 @@ mod command {
         let command = utils::build_command(matches);
 
         assert_eq!(command, vec!["stats", "--format", "json", "123", "456"]);
+    }
+
+    #[test]
+    fn check_flags() {
+        let matches = cli::args().get_matches_from(vec!["ds", "123", "-c", "456", "-f"]);
+
+        assert!(cli::has_arg(&matches, "compact"));
+        assert!(cli::has_arg(&matches, "full"));
     }
 }

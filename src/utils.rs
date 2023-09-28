@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use clap::ArgMatches;
 use colored::{ColoredString, Colorize};
 use terminal_size::{terminal_size, Width};

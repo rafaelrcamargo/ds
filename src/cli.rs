@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use clap::{arg, ArgMatches, Command};
 
 pub fn args() -> Command {
