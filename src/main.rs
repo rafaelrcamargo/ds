@@ -5,13 +5,17 @@ mod utils;
 use byte_unit::Byte;
 use colored::Colorize;
 use data::DockerStats;
-use std::{
-    io::{BufRead, BufReader},
-    process::{Command, Stdio}
+use std::{process::Stdio, sync::Arc, time::Duration};
+use tokio::{
+    io::{AsyncBufReadExt, BufReader},
+    process::Command,
+    sync::{mpsc, Mutex},
+    task, time
 };
 use utils::*;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let matches = cli::args().get_matches();
     let (compact, full) = (
         // Get the args
@@ -19,52 +23,86 @@ fn main() {
         cli::has_arg(&matches, "full")
     );
 
-    let mut containers: Vec<DockerStats> = Vec::new();
+    let containers: Arc<Mutex<Vec<DockerStats>>> = Arc::new(Mutex::new(Vec::new()));
     let width = get_terminal_width();
 
-    let mut cmd = Command::new("docker")
-        .args(build_command(matches))
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("Failed to run \"docker stats ...\"");
+    let (debounce_tx, mut debounce_rx) = mpsc::channel(1);
 
-    let stdout = cmd.stdout.as_mut().unwrap();
-    let stdout_reader = BufReader::new(stdout);
-    let stdout_lines = stdout_reader.lines();
+    // Listen for events
+    let debouncer = task::spawn({
+        let (compact, full, width) = (compact.clone(), full.clone(), width.clone());
+        let containers_ref = containers.clone();
 
-    // print!("\x1B[s"); // Save cursor position
+        async move {
+            let duration = Duration::from_secs(2);
 
-    // Clear line and print
-    // fn cap(string: String) { print!("\x1B[K{}\n", string) }
+            loop {
+                match time::timeout(duration, debounce_rx.recv()).await {
+                    Ok(Some(())) => (),
+                    Ok(None) => break,
+                    Err(_) => {
+                        print(&containers_ref, compact, full, width).await; // Print the charts
+                        containers_ref.lock().await.clear(); // Reset the containers
 
-    println!("Fetching container stats...");
-
-    for line in stdout_lines {
-        print!("\x1B[2J\x1B[1;1H"); // Clear screen
-
-        let line = line.unwrap();
-        dbg!(line.clone());
-
-        if line.starts_with("\u{1b}[2J\u{1b}[H") && !containers.is_empty() {
-            // println!("{}", "\x1B[u"); // Restore cursor position
-            print(&containers, compact, full, width); // Print the charts
-            containers.clear(); // Reset the containers
+                        println!("No events for {}s, waiting...", duration.as_secs())
+                    }
+                }
+            }
         }
+    });
 
-        let line = line.replace("\u{1b}[2J\u{1b}[H", "");
+    let command = task::spawn({
+        let debounce_tx = debounce_tx.clone();
 
-        let stats: DockerStats = serde_json::from_str(&line).unwrap();
-        containers.push(stats);
-    }
+        async move {
+            let mut cmd = Command::new("docker")
+                .args(build_command(matches))
+                .stdout(Stdio::piped())
+                .spawn()
+                .expect("Failed to run \"docker stats ...\"");
 
-    let status = cmd.wait();
-    println!("Exited with status {:?}", status);
+            let stdout = cmd.stdout.take().unwrap();
+            let mut stdout_reader = BufReader::new(stdout).lines();
+
+            // print!("\x1B[s"); // Save cursor position
+
+            // Clear line and print
+            // fn cap(string: String) { print!("\x1B[K{}\n", string) }
+
+            println!("Fetching container stats...");
+
+            while let Some(line) = stdout_reader.next_line().await.unwrap() {
+                // Send a ping to the debouncer
+                debounce_tx.send(()).await.unwrap();
+
+                if line.starts_with("\u{1b}[2J\u{1b}[H") && !containers.lock().await.is_empty() {
+                    // println!("{}", "\x1B[u"); // Restore cursor position
+                    print(&containers, compact, full, width).await; // Print the charts
+                    containers.lock().await.clear(); // Reset the containers
+                }
+
+                let line = line.replace("\u{1b}[2J\u{1b}[H", "");
+
+                let stats: DockerStats = serde_json::from_str(&line).unwrap();
+                containers.lock().await.push(stats);
+            }
+
+            let status = cmd.wait().await.unwrap();
+            println!("Exited with status: {}", status);
+        }
+    });
+
+    command.await.expect("Error on cmd.");
+    debouncer.await.expect("Error on deb.");
 }
 
-fn print(containers: &Vec<DockerStats>, compact: bool, full: bool, width: usize) {
+async fn print(containers: &Arc<Mutex<Vec<DockerStats>>>, compact: bool, full: bool, width: usize) {
+    print!("\x1B[2J\x1B[1;1H"); // Clear screen
+
+    let cont = containers.lock().await;
     let mut max = 100f32;
 
-    for (i, stats) in containers.iter().enumerate() {
+    for (i, stats) in cont.iter().enumerate() {
         // LAYOUT
         {
             if !compact || i == 0 {
@@ -177,7 +215,7 @@ fn print(containers: &Vec<DockerStats>, compact: bool, full: bool, width: usize)
             }
         }
 
-        if !compact || i == containers.len() - 1 {
+        if !compact || i == cont.len() - 1 {
             println!("└{}┘", filler("─", width, 2));
         }
     }
