@@ -43,9 +43,9 @@ fn main() {
         print!("\x1B[2J\x1B[1;1H"); // Clear screen
 
         let line = line.unwrap();
-        // dbg!(line.clone());
+        dbg!(line.clone());
 
-        if line.starts_with("\u{1b}[2J\u{1b}[H") && containers.len() > 0 {
+        if line.starts_with("\u{1b}[2J\u{1b}[H") && !containers.is_empty() {
             // println!("{}", "\x1B[u"); // Restore cursor position
             print(&containers, compact, full, width); // Print the charts
             containers.clear(); // Reset the containers
