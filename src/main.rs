@@ -208,7 +208,7 @@ fn purge(receiver: Receiver<()>, containers: Arc<Mutex<Vec<DockerStats>>>, compa
     let mut last_message: Instant = Instant::now();
 
     loop {
-        if let Ok(_) = receiver.try_recv() {
+        if receiver.try_recv().is_ok() {
             last_message = Instant::now()
         }
 
