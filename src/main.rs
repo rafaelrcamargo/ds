@@ -74,6 +74,22 @@ fn main() {
     println!("Exited with status {:?}", status);
 }
 
+fn purge(receiver: Receiver<()>, containers: Arc<Mutex<Vec<DockerStats>>>, compact: bool, full: bool, width: usize) {
+    let mut last_message: Instant = Instant::now();
+
+    loop {
+        if receiver.try_recv().is_ok() {
+            last_message = Instant::now()
+        }
+
+        if last_message.elapsed().as_secs() > 2 {
+            containers.lock().unwrap().clear(); // Clear the containers list
+            print(containers.clone(), compact, full, width); // Print the charts
+            last_message = Instant::now()
+        }
+    }
+}
+
 fn print(containers: Arc<Mutex<Vec<DockerStats>>>, compact: bool, full: bool, width: usize) {
     print!("\x1B[2J\x1B[1;1H"); // Clear screen
 
@@ -200,22 +216,6 @@ fn print(containers: Arc<Mutex<Vec<DockerStats>>>, compact: bool, full: bool, wi
 
         if !compact || i == containers.len() - 1 {
             println!("└{}┘", filler("─", width, 2));
-        }
-    }
-}
-
-fn purge(receiver: Receiver<()>, containers: Arc<Mutex<Vec<DockerStats>>>, compact: bool, full: bool, width: usize) {
-    let mut last_message: Instant = Instant::now();
-
-    loop {
-        if receiver.try_recv().is_ok() {
-            last_message = Instant::now()
-        }
-
-        if last_message.elapsed().as_secs() > 2 {
-            containers.lock().unwrap().clear(); // Clear the containers list
-            print(containers.clone(), compact, full, width); // Print the charts
-            last_message = Instant::now()
         }
     }
 }
