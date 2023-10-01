@@ -7,7 +7,13 @@ use colored::Colorize;
 use data::DockerStats;
 use std::{
     io::{BufRead, BufReader},
-    process::{Command, Stdio}
+    process::{Command, Stdio},
+    sync::{
+        mpsc::{self, Receiver},
+        Arc, Mutex
+    },
+    thread,
+    time::Instant
 };
 use utils::*;
 
@@ -19,8 +25,13 @@ fn main() {
         cli::has_arg(&matches, "full")
     );
 
-    let mut containers: Vec<DockerStats> = Vec::new();
+    let containers: Arc<Mutex<Vec<DockerStats>>> = Arc::new(Mutex::new(Vec::new()));
     let width = get_terminal_width();
+
+    let (sender, receiver) = mpsc::channel::<()>();
+
+    let t_containers = containers.clone();
+    let t = thread::spawn(move || purge(receiver, t_containers, compact, full, width));
 
     let mut cmd = Command::new("docker")
         .args(build_command(matches))
@@ -40,29 +51,39 @@ fn main() {
     println!("Fetching container stats...");
 
     for line in stdout_lines {
-        print!("\x1B[2J\x1B[1;1H"); // Clear screen
+        let mut line = line.unwrap();
+        // dbg!(line.clone());
 
-        let line = line.unwrap();
-        dbg!(line.clone());
+        sender.send(()).unwrap();
 
-        if line.starts_with("\u{1b}[2J\u{1b}[H") && !containers.is_empty() {
+        let containers = containers.clone();
+        if line.starts_with("\u{1b}[2J\u{1b}[H") {
             // println!("{}", "\x1B[u"); // Restore cursor position
-            print(&containers, compact, full, width); // Print the charts
-            containers.clear(); // Reset the containers
+            print(containers.clone(), compact, full, width); // Print the charts
+            containers.lock().unwrap().clear(); // Reset the containers
+
+            line = line.replace("\u{1b}[2J\u{1b}[H", "")
         }
 
-        let line = line.replace("\u{1b}[2J\u{1b}[H", "");
-
         let stats: DockerStats = serde_json::from_str(&line).unwrap();
-        containers.push(stats);
+        containers.lock().unwrap().push(stats);
     }
 
+    t.join().unwrap();
     let status = cmd.wait();
     println!("Exited with status {:?}", status);
 }
 
-fn print(containers: &Vec<DockerStats>, compact: bool, full: bool, width: usize) {
+fn print(containers: Arc<Mutex<Vec<DockerStats>>>, compact: bool, full: bool, width: usize) {
+    print!("\x1B[2J\x1B[1;1H"); // Clear screen
+
+    let containers = containers.lock().unwrap();
     let mut max = 100f32;
+
+    if containers.len() == 0 {
+        println!("Waiting for container stats...");
+        return;
+    }
 
     for (i, stats) in containers.iter().enumerate() {
         // LAYOUT
@@ -179,6 +200,24 @@ fn print(containers: &Vec<DockerStats>, compact: bool, full: bool, width: usize)
 
         if !compact || i == containers.len() - 1 {
             println!("└{}┘", filler("─", width, 2));
+        }
+    }
+}
+
+fn purge(receiver: Receiver<()>, containers: Arc<Mutex<Vec<DockerStats>>>, compact: bool, full: bool, width: usize) {
+    let mut last_message: Instant = Instant::now();
+
+    loop {
+        if let Ok(_) = receiver.try_recv() {
+            last_message = Instant::now()
+        }
+
+        if last_message.elapsed().as_secs() > 2 {
+            containers.lock().unwrap().clear();
+
+            print(containers.clone(), compact, full, width); // Print the charts
+
+            last_message = Instant::now()
         }
     }
 }
