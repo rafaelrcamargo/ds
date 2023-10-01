@@ -31,7 +31,7 @@ fn main() {
     let (sender, receiver) = mpsc::channel::<()>();
 
     let t_containers = containers.clone();
-    let t = thread::spawn(move || purge(receiver, t_containers, compact, full, width));
+    let purger = thread::spawn(move || purge(receiver, t_containers, compact, full, width));
 
     let mut cmd = Command::new("docker")
         .args(build_command(matches))
@@ -69,7 +69,7 @@ fn main() {
         containers.lock().unwrap().push(stats);
     }
 
-    t.join().unwrap();
+    purger.join().unwrap();
     let status = cmd.wait();
     println!("Exited with status {:?}", status);
 }
@@ -213,10 +213,8 @@ fn purge(receiver: Receiver<()>, containers: Arc<Mutex<Vec<DockerStats>>>, compa
         }
 
         if last_message.elapsed().as_secs() > 2 {
-            containers.lock().unwrap().clear();
-
+            containers.lock().unwrap().clear(); // Clear the containers list
             print(containers.clone(), compact, full, width); // Print the charts
-
             last_message = Instant::now()
         }
     }
