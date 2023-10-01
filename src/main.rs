@@ -7,7 +7,10 @@ use colored::Colorize;
 use data::DockerStats;
 use std::{
     io::{BufRead, BufReader},
-    process::{Command, Stdio}
+    process::{Command, Stdio},
+    sync::{Arc, Mutex},
+    thread,
+    time::Instant
 };
 use utils::*;
 
@@ -19,7 +22,7 @@ fn main() {
         cli::has_arg(&matches, "full")
     );
 
-    let mut containers: Vec<DockerStats> = Vec::new();
+    let containers: Arc<Mutex<Vec<DockerStats>>> = Arc::new(Mutex::new(Vec::new()));
     let width = get_terminal_width();
 
     let mut cmd = Command::new("docker")
@@ -29,40 +32,53 @@ fn main() {
         .expect("Failed to run \"docker stats ...\"");
 
     let stdout = cmd.stdout.as_mut().unwrap();
-    let stdout_reader = BufReader::new(stdout);
-    let stdout_lines = stdout_reader.lines();
+    let reader = BufReader::new(stdout);
 
     // print!("\x1B[s"); // Save cursor position
 
     // Clear line and print
     // fn cap(string: String) { print!("\x1B[K{}\n", string) }
 
+    let t_containers = containers.clone();
+    let t = thread::spawn(move || print_on(t_containers, compact, full, width));
+
     println!("Fetching container stats...");
 
-    for line in stdout_lines {
-        print!("\x1B[2J\x1B[1;1H"); // Clear screen
+    for line in reader.lines() {
+        let mut line = line.unwrap();
+        // dbg!(line.clone());
 
-        let line = line.unwrap();
-        dbg!(line.clone());
-
-        if line.starts_with("\u{1b}[2J\u{1b}[H") && !containers.is_empty() {
+        if line.starts_with("\u{1b}[2J\u{1b}[H") {
             // println!("{}", "\x1B[u"); // Restore cursor position
-            print(&containers, compact, full, width); // Print the charts
-            containers.clear(); // Reset the containers
+            // print(containers.clone(), compact, full, width); // Print the charts
+            line = line.replace("\u{1b}[2J\u{1b}[H", "");
         }
 
-        let line = line.replace("\u{1b}[2J\u{1b}[H", "");
-
         let stats: DockerStats = serde_json::from_str(&line).unwrap();
-        containers.push(stats);
+        containers.lock().unwrap().push(stats);
     }
 
+    t.join().unwrap();
     let status = cmd.wait();
     println!("Exited with status {:?}", status);
 }
 
-fn print(containers: &Vec<DockerStats>, compact: bool, full: bool, width: usize) {
+fn print_on(containers: Arc<Mutex<Vec<DockerStats>>>, compact: bool, full: bool, width: usize) {
+    let mut now = Instant::now();
+    loop {
+        if now.elapsed().as_millis() > 500 {
+            print(containers.clone(), compact, full, width);
+            containers.lock().unwrap().clear(); // Reset the containers
+            now = Instant::now()
+        }
+    }
+}
+
+fn print(containers: Arc<Mutex<Vec<DockerStats>>>, compact: bool, full: bool, width: usize) {
+    let containers = containers.lock().unwrap();
     let mut max = 100f32;
+
+    // print!("\x1B[2J\x1B[1;1H"); // Clear screen
 
     for (i, stats) in containers.iter().enumerate() {
         // LAYOUT
