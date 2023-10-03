@@ -36,7 +36,7 @@ mod command {
     fn check_flags() {
         let matches = cli::args().get_matches_from(vec!["ds", "123", "-c", "456", "-f"]);
 
-        assert!(cli::has_arg(&matches, "compact"));
-        assert!(cli::has_arg(&matches, "full"));
+        assert!(cli::has_flag(&matches, "compact"));
+        assert!(cli::has_flag(&matches, "full"));
     }
 }

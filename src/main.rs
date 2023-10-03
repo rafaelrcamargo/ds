@@ -18,8 +18,8 @@ fn main() {
     let matches = cli::args().get_matches();
     let (compact, full) = (
         // Get the args
-        cli::has_arg(&matches, "compact"),
-        cli::has_arg(&matches, "full")
+        cli::has_flag(&matches, "compact"),
+        cli::has_flag(&matches, "full")
     );
 
     let mut containers: HashMap<String, DockerStats> = HashMap::new();

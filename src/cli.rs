@@ -11,7 +11,7 @@ pub fn args() -> Command {
         .arg(arg!(-f - -full "Enable a more detailed view."))
 }
 
-pub fn has_arg(args: &ArgMatches, id: &str) -> bool {
+pub fn has_flag(args: &ArgMatches, id: &str) -> bool {
     args.get_one::<bool>(id)
         .is_some_and(|x| *x)
 }
