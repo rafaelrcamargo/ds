@@ -7,6 +7,9 @@
   <img src="./assets/demo.png" alt="demo" />
 </div>
 
+> [!IMPORTANT]
+> This is a WIP, `main` should be stable, but keep in mind this is changing constantly. Thanks! :)
+
 ## Why `ds`?
 
 - **Missing Charts**: While experimenting with [OrbStack](https://orbstack.dev/), a lightweight Docker container management tool, I found that it lacks the visual charts that Docker Desktop provides. This project aims to bridge that gap.
@@ -15,7 +18,7 @@
 
 ## Installation
 
-> **Note**
+> [!NOTE]
 > I plan to publish `ds` on [crates.io](https://crates.io/) once it's stable enough.
 
 ### Source
