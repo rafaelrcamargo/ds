@@ -88,6 +88,12 @@ To see detailed stats for a specific container, including NET and IO charts:
 ds -f 5f03524a8fbe api-1
 ```
 
+## Roadmap
+
+- [x] https://github.com/rafaelrcamargo/ds/issues/2
+- [x] https://github.com/rafaelrcamargo/ds/issues/5
+- [ ] https://github.com/rafaelrcamargo/ds/issues/8
+
 ## Pain Points
 
 Some things that are bad, but expected.
