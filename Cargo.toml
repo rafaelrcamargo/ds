@@ -1,5 +1,5 @@
 [package]
-authors = ["Rafael R. Camargo <66796237+rafaelrcamargo@users.noreply.github.com>"]
+authors = ["Rafael R. Camargo"]
 categories = ["command-line-utilities"]
 description = "Visualize container stats with beautiful, real-time charts directly in your terminal."
 edition = "2021"
