@@ -1,7 +1,7 @@
-chain_width = 40
+chain_width = 60
 fn_single_line = true
 imports_granularity = "Crate"
-max_width = 120
+max_width = 144
 normalize_comments = true
-single_line_if_else_max_width = 120
+single_line_if_else_max_width = 144
 trailing_comma = "Never"

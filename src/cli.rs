@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-
-use clap::{arg, ArgMatches, Command};
+use clap::{arg, Command};
 
 pub fn args() -> Command {
     Command::new("ds")
@@ -9,9 +7,4 @@ pub fn args() -> Command {
         .arg(arg!(<CONTAINER> ... "The container to show stats for.").required(false))
         .arg(arg!(-c - -compact "Enable a simpler, more compact view."))
         .arg(arg!(-f - -full "Enable a more detailed view."))
-}
-
-pub fn has_flag(args: &ArgMatches, id: &str) -> bool {
-    args.get_one::<bool>(id)
-        .is_some_and(|x| *x)
 }

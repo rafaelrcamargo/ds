@@ -14,11 +14,10 @@ pub fn build_command(matches: ArgMatches) -> Vec<String> {
         .flatten()
         .for_each(|c| command.push(c));
 
-    command
-        .iter()
-        .map(|s| s.to_string())
-        .collect()
+    command.iter().map(|s| s.to_string()).collect()
 }
+
+pub fn get_flag(args: &ArgMatches, id: &str) -> bool { args.get_one::<bool>(id).is_some_and(|x| *x) }
 
 /// Gets the current terminal width.
 pub fn get_terminal_width() -> usize {
@@ -95,10 +94,7 @@ pub fn scale_between(nums: Vec<u128>, floor: usize, ceil: usize) -> Option<Vec<u
 
     Some(
         nums.iter()
-            .map(|num| {
-                usize::try_from((ceil - floor) * (num - min) / (max - min) + floor)
-                    .expect("Failed to convert u128 to usize")
-            })
+            .map(|num| usize::try_from((ceil - floor) * (num - min) / (max - min) + floor).expect("Failed to convert u128 to usize"))
             .collect()
     )
 }

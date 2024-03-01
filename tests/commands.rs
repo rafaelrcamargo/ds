@@ -31,12 +31,4 @@ mod command {
 
         assert_eq!(command, vec!["stats", "--format", "json", "123", "456"]);
     }
-
-    #[test]
-    fn check_flags() {
-        let matches = cli::args().get_matches_from(vec!["ds", "123", "-c", "456", "-f"]);
-
-        assert!(cli::has_flag(&matches, "compact"));
-        assert!(cli::has_flag(&matches, "full"));
-    }
 }

@@ -19,11 +19,7 @@ use utils::*;
 
 fn main() {
     let matches = cli::args().get_matches();
-    let (compact, full) = (
-        // Get the args
-        cli::has_flag(&matches, "compact"),
-        cli::has_flag(&matches, "full")
-    );
+    let (compact, full) = (get_flag(&matches, "compact"), get_flag(&matches, "full"));
 
     let containers: Arc<Mutex<Vec<DockerStats>>> = Arc::new(Mutex::new(Vec::new()));
     let width = get_terminal_width();
@@ -154,18 +150,11 @@ fn print(containers: Arc<Mutex<Vec<DockerStats>>>, compact: bool, full: bool, wi
             // NET
             {
                 let net: Vec<usize> = {
-                    let net = stats
-                        .net_io
-                        .split(" / ")
-                        .collect::<Vec<&str>>();
+                    let net = stats.net_io.split(" / ").collect::<Vec<&str>>();
 
                     let bytes = vec![
-                        Byte::from_str(net[0])
-                            .expect("Failed to parse Byte")
-                            .get_bytes(),
-                        Byte::from_str(net[1])
-                            .expect("Failed to parse Byte")
-                            .get_bytes(),
+                        Byte::parse_str(net[0], true).unwrap().as_u128(),
+                        Byte::parse_str(net[1], true).unwrap().as_u128(),
                     ];
 
                     match scale_between(bytes, 1, width - 12) {
@@ -185,18 +174,15 @@ fn print(containers: Arc<Mutex<Vec<DockerStats>>>, compact: bool, full: bool, wi
             // IO
             {
                 let io = {
-                    let blocks = stats
-                        .block_io
-                        .split(" / ")
-                        .collect::<Vec<&str>>();
+                    let blocks = stats.block_io.split(" / ").collect::<Vec<&str>>();
 
                     let bytes = vec![
-                        Byte::from_str(blocks[0])
+                        Byte::parse_str(blocks[0], true)
                             .expect("Failed to parse Byte")
-                            .get_bytes(),
-                        Byte::from_str(blocks[1])
+                            .as_u128(),
+                        Byte::parse_str(blocks[1], true)
                             .expect("Failed to parse Byte")
-                            .get_bytes(),
+                            .as_u128(),
                     ];
 
                     match scale_between(bytes, 1, width - 12) {
