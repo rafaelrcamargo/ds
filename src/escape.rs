@@ -3,6 +3,10 @@ pub struct EscapeSequenceCleaner {
     partial_line: String
 }
 
+impl Default for EscapeSequenceCleaner {
+    fn default() -> Self { Self::new() }
+}
+
 impl EscapeSequenceCleaner {
     pub fn new() -> Self {
         Self {
