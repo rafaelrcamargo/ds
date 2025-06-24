@@ -4,7 +4,7 @@
 
 _Visualize container metrics with real-time charts directly in your terminal._
 
-  <img src="./docs/assets/demo.png" alt="demo" />
+  <img src="./assets/demo.png" alt="demo" />
 </div>
 
 > [!IMPORTANT]
