@@ -7,8 +7,8 @@ _Visualize container metrics with real-time charts directly in your terminal._
   <img src="./assets/demo.png" alt="demo" />
 </div>
 
-> [!IMPORTANT]
-> `ds` is under active development. The `main` branch is intended to be stable, but breaking changes may occur.
+> [!WARNING]
+> `ds` is now stable and no longer under active development. It is feature-complete and should function as expected. If you encounter any issues, please [open an issue](https://github.com/rafaelrcamargo/ds/issues), and pull requests are welcome.
 
 ## Overview
 
