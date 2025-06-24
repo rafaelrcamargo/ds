@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DockerStats {
     #[serde(rename = "BlockIO")]
@@ -8,6 +8,7 @@ pub struct DockerStats {
     #[serde(rename = "CPUPerc")]
     pub cpu_perc: String,
     #[serde(rename = "ID")]
+    #[allow(dead_code)]
     pub id: String,
     pub mem_perc: String,
     pub mem_usage: String,

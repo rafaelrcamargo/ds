@@ -1,207 +1,207 @@
 mod cli;
 mod data;
+mod display;
+mod error;
+mod escape;
 mod utils;
 
-use byte_unit::Byte;
-use colored::Colorize;
 use data::DockerStats;
+use display::StatsDisplay;
+use error::{AppError, Result};
+use escape::EscapeSequenceCleaner;
+use utils::*;
+
 use std::{
     io::{BufRead, BufReader},
     process::{Command, Stdio},
     sync::{
-        mpsc::{self, Receiver},
-        Arc, Mutex
+        atomic::{AtomicBool, Ordering},
+        mpsc::{self, Receiver, TryRecvError},
+        Arc
     },
     thread,
-    time::Instant
+    time::{Duration, Instant}
 };
-use utils::*;
+
+static RUNNING: AtomicBool = AtomicBool::new(true);
 
 fn main() {
+    // Setup signal handling for graceful shutdown
+    if let Err(e) = setup_signal_handling() {
+        eprintln!("Warning: Failed to setup signal handling: {e}");
+    }
+
+    // Run the main application
+    if let Err(e) = run_app() {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    }
+}
+
+fn setup_signal_handling() -> Result<()> {
+    use signal_hook::{consts::SIGINT, iterator::Signals};
+
+    let mut signals = Signals::new([SIGINT]).map_err(AppError::IoError)?;
+
+    thread::spawn(move || {
+        if signals.forever().next().is_some() {
+            println!("\nReceived Ctrl+C, shutting down gracefully...");
+            RUNNING.store(false, Ordering::SeqCst);
+        }
+    });
+
+    Ok(())
+}
+
+fn run_app() -> Result<()> {
     let matches = cli::args().get_matches();
     let (compact, full) = (get_flag(&matches, "compact"), get_flag(&matches, "full"));
-
-    let containers: Arc<Mutex<Vec<DockerStats>>> = Arc::new(Mutex::new(Vec::new()));
     let width = get_terminal_width();
 
-    let (sender, receiver) = mpsc::channel::<()>();
+    println!("Starting Docker stats monitor...");
+    println!("Press Ctrl+C to exit");
 
-    let t_containers = containers.clone();
-    let purger = thread::spawn(move || purge(receiver, t_containers, compact, full, width));
+    // Channel for communication between threads
+    let (stats_sender, _stats_receiver) = mpsc::channel::<Vec<DockerStats>>();
+    let (heartbeat_sender, heartbeat_receiver) = mpsc::channel::<()>();
 
+    // Shared containers data
+    let containers = Arc::new(std::sync::Mutex::new(Vec::<DockerStats>::new()));
+    let display = Arc::new(StatsDisplay::new(width, compact, full));
+
+    // Spawn display thread
+    let display_containers = containers.clone();
+    let display_handle = display.clone();
+    let display_thread = thread::spawn(move || display_loop(heartbeat_receiver, display_containers, display_handle));
+
+    // Spawn Docker stats reader thread
+    let reader_containers = containers.clone();
+    let reader_thread = thread::spawn(move || docker_stats_reader(matches, stats_sender, heartbeat_sender, reader_containers));
+
+    // Wait for threads to complete
+    let reader_result = reader_thread.join();
+    let display_result = display_thread.join();
+
+    // Handle thread results
+    match (reader_result, display_result) {
+        (Ok(Ok(())), Ok(())) => {
+            println!("Application shut down successfully");
+            Ok(())
+        }
+        (Ok(Err(e)), _) => Err(e),
+        (Err(_), Ok(())) => Err(AppError::TerminalError("Reader thread panicked".to_string())),
+        (Ok(Ok(())), Err(_)) => Err(AppError::TerminalError("Display thread panicked".to_string())),
+        (Err(_), Err(_)) => Err(AppError::TerminalError("Both threads panicked".to_string()))
+    }
+}
+
+fn docker_stats_reader(
+    matches: clap::ArgMatches,
+    _stats_sender: mpsc::Sender<Vec<DockerStats>>,
+    heartbeat_sender: mpsc::Sender<()>,
+    containers: Arc<std::sync::Mutex<Vec<DockerStats>>>
+) -> Result<()> {
     let mut cmd = Command::new("docker")
         .args(build_command(matches))
         .stdout(Stdio::piped())
         .spawn()
-        .expect("Failed to run \"docker stats ...\"");
+        .map_err(AppError::from)?;
 
-    let stdout = cmd.stdout.as_mut().unwrap();
-    let stdout_reader = BufReader::new(stdout);
-    let stdout_lines = stdout_reader.lines();
+    let stdout = cmd
+        .stdout
+        .take()
+        .ok_or_else(|| AppError::TerminalError("Failed to get stdout from docker command".to_string()))?;
 
-    // print!("\x1B[s"); // Save cursor position
+    let reader = BufReader::new(stdout);
+    let mut escape_cleaner = EscapeSequenceCleaner::new();
 
-    // Clear line and print
-    // fn cap(string: String) { print!("\x1B[K{}\n", string) }
-
-    println!("Fetching container stats...");
-
-    for line in stdout_lines {
-        let mut line = line.unwrap();
-        // dbg!(line.clone());
-
-        sender.send(()).unwrap();
-
-        let containers = containers.clone();
-        if line.starts_with("\u{1b}[2J\u{1b}[H") {
-            // println!("{}", "\x1B[u"); // Restore cursor position
-            print(containers.clone(), compact, full, width); // Print the charts
-            containers.lock().unwrap().clear(); // Reset the containers
-
-            line = line.replace("\u{1b}[2J\u{1b}[H", "")
+    for line_result in reader.lines() {
+        if !RUNNING.load(Ordering::SeqCst) {
+            break;
         }
 
-        let stats: DockerStats = serde_json::from_str(&line).unwrap();
-        containers.lock().unwrap().push(stats);
+        let line = line_result.map_err(AppError::from)?;
+
+        // Send heartbeat
+        let _ = heartbeat_sender.send(());
+
+        // Check for screen clear event
+        if EscapeSequenceCleaner::is_screen_clear_event(&line) {
+            containers.lock().unwrap().clear();
+        }
+
+        // Process the line
+        if let Some(clean_line) = escape_cleaner.process_line(line) {
+            match serde_json::from_str::<DockerStats>(&clean_line) {
+                Ok(stats) => {
+                    let mut containers_guard = containers.lock().unwrap();
+
+                    // Find existing container by name and update it, or add new one
+                    if let Some(existing) = containers_guard.iter_mut().find(|c| c.name == stats.name) {
+                        *existing = stats;
+                    } else {
+                        containers_guard.push(stats);
+                    }
+                }
+                Err(e) => {
+                    // Log parsing errors but don't stop the application
+                    eprintln!("Warning: Failed to parse JSON: {e}");
+                    continue;
+                }
+            }
+        }
     }
 
-    purger.join().unwrap();
-    let status = cmd.wait();
-    println!("Exited with status {:?}", status);
+    // Wait for docker command to finish
+    let status = cmd.wait().map_err(AppError::from)?;
+
+    // If we were interrupted (Ctrl+C), don't treat this as an error
+    if !RUNNING.load(Ordering::SeqCst) {
+        return Ok(());
+    }
+
+    if !status.success() {
+        return Err(AppError::DockerNotRunning);
+    }
+
+    Ok(())
 }
 
-fn purge(receiver: Receiver<()>, containers: Arc<Mutex<Vec<DockerStats>>>, compact: bool, full: bool, width: usize) {
-    let mut last_message: Instant = Instant::now();
+fn display_loop(heartbeat_receiver: Receiver<()>, containers: Arc<std::sync::Mutex<Vec<DockerStats>>>, display: Arc<StatsDisplay>) {
+    let mut last_heartbeat = Instant::now();
+    let timeout_duration = Duration::from_secs(3);
 
     loop {
-        if receiver.try_recv().is_ok() {
-            last_message = Instant::now()
+        if !RUNNING.load(Ordering::SeqCst) {
+            break;
         }
 
-        if last_message.elapsed().as_secs() > 2 {
-            containers.lock().unwrap().clear(); // Clear the containers list
-            print(containers.clone(), compact, full, width); // Print the charts
-            last_message = Instant::now()
-        }
-    }
-}
-
-fn print(containers: Arc<Mutex<Vec<DockerStats>>>, compact: bool, full: bool, width: usize) {
-    print!("\x1B[2J\x1B[1;1H"); // Clear screen
-
-    let containers = containers.lock().unwrap();
-    let mut max = 100f32;
-
-    if containers.len() == 0 {
-        println!("Waiting for container stats...");
-        return;
-    }
-
-    for (i, stats) in containers.iter().enumerate() {
-        // LAYOUT
-        {
-            if !compact || i == 0 {
-                println!("┌─ {} {}┐", stats.name, filler("─", width, stats.name.len() + 5));
-            } else {
-                println!("├─ {} {}┤", stats.name, fill_on_even("─", width, stats.name.len() + 5));
+        // Check for heartbeat
+        match heartbeat_receiver.try_recv() {
+            Ok(()) => {
+                last_heartbeat = Instant::now();
+            }
+            Err(TryRecvError::Empty) => {
+                // No new heartbeat, check if we should timeout
+                if last_heartbeat.elapsed() > timeout_duration {
+                    containers.lock().unwrap().clear();
+                    last_heartbeat = Instant::now();
+                }
+            }
+            Err(TryRecvError::Disconnected) => {
+                // Sender disconnected, exit
+                break;
             }
         }
 
-        // CONSTANTS
-        let mem_perc: f32 = perc_to_float(stats.mem_perc.clone());
-        let cpu_perc: f32 = perc_to_float(stats.cpu_perc.clone());
+        // Display current stats
+        let containers_data = {
+            let guard = containers.lock().unwrap();
+            guard.clone()
+        };
+        display.print_stats(&containers_data);
 
-        // GLOBAL SCALE
-        max = max.max(mem_perc);
-        max = max.max(cpu_perc);
-
-        // CPU
-        {
-            let scale_factor = (width - 18) as f32 / max;
-            let cpu_perc = (cpu_perc * scale_factor) as usize;
-            println!(
-                "│ CPU | {}{} {}{} │",
-                filler(" ", 7, stats.cpu_perc.len()),
-                stats.cpu_perc,
-                usize_to_status(cpu_perc, width),
-                filler("░", width, cpu_perc + 18).dimmed()
-            );
-        }
-
-        // RAM
-        {
-            let mem_usage_len = stats.mem_usage.len() + 1;
-            let scale_factor = (width - (18 + mem_usage_len)) as f32 / max;
-            let mem_perc = (mem_perc * scale_factor) as usize;
-            println!(
-                "│ RAM | {}{} {}{}{} {} │",
-                filler(" ", 7, stats.mem_perc.len()),
-                stats.mem_perc,
-                usize_to_status(mem_perc, width - (18 + mem_usage_len)),
-                filler("░", width, mem_perc + (18 + mem_usage_len)).dimmed(),
-                filler(" ", mem_usage_len, mem_usage_len),
-                stats.mem_usage
-            );
-        }
-
-        if full {
-            println!("│{}│", fill_on_even("─", width, 2).dimmed());
-
-            // NET
-            {
-                let net: Vec<usize> = {
-                    let net = stats.net_io.split(" / ").collect::<Vec<&str>>();
-
-                    let bytes = vec![
-                        Byte::parse_str(net[0], true).unwrap().as_u128(),
-                        Byte::parse_str(net[1], true).unwrap().as_u128(),
-                    ];
-
-                    match scale_between(bytes, 1, width - 12) {
-                        None => balanced_split(width - 11),
-                        Some(scaled_net) => scaled_net
-                    }
-                };
-
-                println!(
-                    "│ NET | {}{}{} │",
-                    filler("▒", width - 11, net[0]).green(),
-                    "░".dimmed(),
-                    filler("▒", width - 11, net[1]).red()
-                );
-            }
-
-            // IO
-            {
-                let io = {
-                    let blocks = stats.block_io.split(" / ").collect::<Vec<&str>>();
-
-                    let bytes = vec![
-                        Byte::parse_str(blocks[0], true)
-                            .expect("Failed to parse Byte")
-                            .as_u128(),
-                        Byte::parse_str(blocks[1], true)
-                            .expect("Failed to parse Byte")
-                            .as_u128(),
-                    ];
-
-                    match scale_between(bytes, 1, width - 12) {
-                        None => balanced_split(width - 11),
-                        Some(scaled_io) => scaled_io
-                    }
-                };
-
-                println!(
-                    "│  IO | {}{}{} │",
-                    filler("▒", io[0], 0).white(),
-                    "░".dimmed(),
-                    filler("▒", io[1], 0).black()
-                );
-            }
-        }
-
-        if !compact || i == containers.len() - 1 {
-            println!("└{}┘", filler("─", width, 2));
-        }
+        // Sleep briefly to avoid excessive CPU usage
+        thread::sleep(Duration::from_millis(100));
     }
 }
