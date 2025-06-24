@@ -2,23 +2,24 @@
 authors = ["Rafael R. Camargo"]
 categories = ["command-line-utilities"]
 description = "Visualize container stats with beautiful, real-time charts directly in your terminal."
-documentation = "https://docs.rs/ds"
+documentation = "https://docs.rs/docker-stats"
 edition = "2021"
 keywords = ["docker", "container", "stats", "monitoring", "terminal", "charts"]
 license = "Apache-2.0"
-name = "ds"
+name = "docker-stats"
 readme = "README.md"
 repository = "https://github.com/rafaelrcamargo/ds"
-version = "0.1.0"
+version = "0.2.0"
 
 [badges]
 maintenance = { status = "experimental" }
 
 [[bin]]
 name = "ds"
+path = "src/main.rs"
 
 [lib]
-name = "ds"
+name = "docker_stats"
 
 [dependencies]
 byte-unit = "5.1"

@@ -1,4 +1,4 @@
-use ds::{data::DockerStats, display::StatsDisplay, error::AppError, escape::EscapeSequenceCleaner, utils};
+use docker_stats::{data::DockerStats, display::StatsDisplay, error::AppError, escape::EscapeSequenceCleaner, utils};
 use std::io::{Error as IoError, ErrorKind};
 
 #[cfg(test)]

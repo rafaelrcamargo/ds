@@ -26,7 +26,13 @@ This project was inspired by the need for a visual statistics tool similar to Do
 ## Installation
 
 > [!NOTE]
-> `ds` will be available on [crates.io](https://crates.io/) once it reaches a stable release.
+> `ds` is available on [crates.io](https://crates.io/crates/docker-stats) as `docker-stats`.
+
+### From crates.io
+
+```bash
+cargo install docker-stats
+```
 
 ### From Source
 
