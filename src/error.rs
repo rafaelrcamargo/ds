@@ -34,4 +34,5 @@ impl From<std::io::Error> for AppError {
     }
 }
 
+#[allow(dead_code)]
 pub type Result<T> = std::result::Result<T, AppError>;
