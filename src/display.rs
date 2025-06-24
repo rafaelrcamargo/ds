@@ -24,8 +24,8 @@ impl StatsDisplay {
 
         // Calculate global scale
         for stats in containers {
-            let mem_perc = perc_to_float(stats.mem_perc.clone());
-            let cpu_perc = perc_to_float(stats.cpu_perc.clone());
+            let mem_perc = perc_to_float(&stats.mem_perc);
+            let cpu_perc = perc_to_float(&stats.cpu_perc);
             max = max.max(mem_perc).max(cpu_perc);
         }
 
@@ -44,32 +44,30 @@ impl StatsDisplay {
             println!("├─ {} {}┤", stats.name, fill_on_even("─", self.width, stats.name.len() + 5));
         }
 
-        let mem_perc = perc_to_float(stats.mem_perc.clone());
-        let cpu_perc = perc_to_float(stats.cpu_perc.clone());
+        let mem_perc = perc_to_float(&stats.mem_perc);
+        let cpu_perc = perc_to_float(&stats.cpu_perc);
 
         // CPU
         let scale_factor = (self.width - 18) as f32 / max;
         let cpu_perc_scaled = (cpu_perc * scale_factor) as usize;
-        println!(
-            "│ CPU | {}{} {}{} │",
-            filler(" ", 7, stats.cpu_perc.len()),
-            stats.cpu_perc,
-            usize_to_status(cpu_perc_scaled, self.width),
-            filler("░", self.width, cpu_perc_scaled + 18).dimmed()
-        );
+        let cpu_padding = filler(" ", 7, stats.cpu_perc.len());
+        let cpu_status = usize_to_status(cpu_perc_scaled, self.width);
+        let cpu_fill = filler("░", self.width, cpu_perc_scaled + 18).dimmed();
+
+        println!("│ CPU | {cpu_padding}{} {cpu_status}{cpu_fill} │", stats.cpu_perc);
 
         // RAM
         let mem_usage_len = stats.mem_usage.len() + 1;
         let scale_factor = (self.width - (18 + mem_usage_len)) as f32 / max;
         let mem_perc_scaled = (mem_perc * scale_factor) as usize;
+        let mem_padding = filler(" ", 7, stats.mem_perc.len());
+        let mem_status = usize_to_status(mem_perc_scaled, self.width - (18 + mem_usage_len));
+        let mem_fill = filler("░", self.width, mem_perc_scaled + (18 + mem_usage_len)).dimmed();
+        let mem_spacing = filler(" ", mem_usage_len, mem_usage_len);
+
         println!(
-            "│ RAM | {}{} {}{}{} {} │",
-            filler(" ", 7, stats.mem_perc.len()),
-            stats.mem_perc,
-            usize_to_status(mem_perc_scaled, self.width - (18 + mem_usage_len)),
-            filler("░", self.width, mem_perc_scaled + (18 + mem_usage_len)).dimmed(),
-            filler(" ", mem_usage_len, mem_usage_len),
-            stats.mem_usage
+            "│ RAM | {mem_padding}{} {mem_status}{mem_fill}{mem_spacing} {} │",
+            stats.mem_perc, stats.mem_usage
         );
 
         if self.full {

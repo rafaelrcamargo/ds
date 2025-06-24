@@ -127,20 +127,22 @@ fn docker_stats_reader(
 
         // Check for screen clear event
         if EscapeSequenceCleaner::is_screen_clear_event(&line) {
-            containers.lock().unwrap().clear();
+            if let Ok(mut guard) = containers.lock() {
+                guard.clear();
+            }
         }
 
         // Process the line
         if let Some(clean_line) = escape_cleaner.process_line(line) {
             match serde_json::from_str::<DockerStats>(&clean_line) {
                 Ok(stats) => {
-                    let mut containers_guard = containers.lock().unwrap();
-
-                    // Find existing container by name and update it, or add new one
-                    if let Some(existing) = containers_guard.iter_mut().find(|c| c.name == stats.name) {
-                        *existing = stats;
-                    } else {
-                        containers_guard.push(stats);
+                    if let Ok(mut containers_guard) = containers.lock() {
+                        // Find existing container by name and update it, or add new one
+                        if let Some(existing) = containers_guard.iter_mut().find(|c| c.name == stats.name) {
+                            *existing = stats;
+                        } else {
+                            containers_guard.push(stats);
+                        }
                     }
                 }
                 Err(e) => {
@@ -184,7 +186,9 @@ fn display_loop(heartbeat_receiver: Receiver<()>, containers: Arc<std::sync::Mut
             Err(TryRecvError::Empty) => {
                 // No new heartbeat, check if we should timeout
                 if last_heartbeat.elapsed() > timeout_duration {
-                    containers.lock().unwrap().clear();
+                    if let Ok(mut guard) = containers.lock() {
+                        guard.clear();
+                    }
                     last_heartbeat = Instant::now();
                 }
             }
@@ -195,11 +199,9 @@ fn display_loop(heartbeat_receiver: Receiver<()>, containers: Arc<std::sync::Mut
         }
 
         // Display current stats
-        let containers_data = {
-            let guard = containers.lock().unwrap();
-            guard.clone()
-        };
-        display.print_stats(&containers_data);
+        if let Ok(guard) = containers.lock() {
+            display.print_stats(&guard);
+        }
 
         // Sleep briefly to avoid excessive CPU usage
         thread::sleep(Duration::from_millis(100));
