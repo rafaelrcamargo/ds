@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### 🚜 Refactor
+
+- *(architecture)* Refactor application structure for improved maintainability
+
+## [1] - 2024-03-01
+
 ### 🚀 Features
 
 - First commit, we have something... some thing.
@@ -33,6 +39,7 @@ All notable changes to this project will be documented in this file.
 - Updated Cargo.toml
 - Updated CODE_OF_CONDUCT.md
 - Lib updates
+- Setup CHANGELOG
 
 ### 🐛 Bug Fixes
 
