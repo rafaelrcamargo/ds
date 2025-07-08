@@ -204,6 +204,6 @@ fn display_loop(heartbeat_receiver: Receiver<()>, containers: Arc<std::sync::Mut
         }
 
         // Sleep briefly to avoid excessive CPU usage
-        thread::sleep(Duration::from_millis(100));
+        thread::sleep(Duration::from_millis(500));
     }
 }
